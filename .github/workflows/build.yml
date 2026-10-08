@@ -1,38 +1,48 @@
-name: Build Trix AI APK
+name: Trix AI Android Build
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ main ]
-
-permissions:
-  contents: read
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Extract Android project
+        run: |
+          mkdir -p project
+          unzip -q TrixAI-Final-Android.zip -d project
+
+          if [ -d "project/TrixAI" ]; then
+            echo "Nested TrixAI folder found"
+            cp -r project/TrixAI/. project/
+          fi
+
+          find project -maxdepth 3 -type f | head -100
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace
+      - name: Build APK
+        working-directory: project
+        run: |
+          gradle :app:assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Trix-AI-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          name: Trix-AI-debug
+          path: project/app/build/outputs/apk/debug/*.apk

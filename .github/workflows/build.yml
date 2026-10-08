@@ -2,7 +2,7 @@ name: Trix AI Android Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -23,18 +23,43 @@ jobs:
             cp -r project/TrixAI/. project/
           fi
 
-          find project -maxdepth 3 -type f | head -100
+      - name: Fix Java and Kotlin JVM target
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("project/app/build.gradle.kts")
+          text = p.read_text()
+
+          if "compileOptions" not in text:
+              text = text.replace(
+                  '    buildFeatures { buildConfig = true }',
+                  '''    compileOptions {
+                      sourceCompatibility = JavaVersion.VERSION_17
+                      targetCompatibility = JavaVersion.VERSION_17
+                  }
+
+                  kotlinOptions {
+                      jvmTarget = "17"
+                  }
+
+                  buildFeatures { buildConfig = true }'''
+              )
+
+          p.write_text(text)
+          print(p.read_text())
+          PY
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.13'
+          gradle-version: "8.13"
 
       - name: Build APK
         working-directory: project
